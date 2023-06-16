@@ -159,13 +159,32 @@ public:
  * but take the min with the (bound+1).
  * This function is used to select the pivot variable.
 */
-  unsigned get_num_non_free_dep_vars(
-      unsigned j, unsigned bound) const { // consider looking at the signs here: todo
+  unsigned get_num_of_basic_columns_that_can_become_infeasible(
+      unsigned j, unsigned bound, bool needs_to_grow, unsigned bj) const { // consider looking at the signs here: todo
     unsigned r = 0;
     for (const auto &cc : this->m_A.m_columns[j]) {
-      if (this->m_column_types[this->m_basis[cc.var()]] != column_type::free_column) {        
-         if (++r > bound) return r;
+      unsigned basic_for_row = this->m_basis[cc.var()];
+      if (basic_for_row == bj)
+        continue;
+      const auto& coeff = this->m_A.get_val(cc);
+        
+     // std::cout << this->m_A.m_rows[cc.var()] << std::endl;
+      if (!this->column_is_feasible(basic_for_row) || this->m_column_types[basic_for_row] == column_type::free_column) {
+        continue;
       }
+      if (needs_to_grow) {
+        if ((coeff.is_pos() && this->column_has_lower_bound(basic_for_row))
+          ||
+        (coeff .is_neg() && this->column_has_upper_bound(basic_for_row)))
+          r++;  
+      } else { // needs to go down
+        if ((coeff .is_pos() && this->column_has_upper_bound(basic_for_row))
+          ||
+        (coeff .is_neg() && this->column_has_lower_bound(basic_for_row)))
+          r++;
+      }
+      if (r > bound) return r;
+      
     }
     return r;
   }
@@ -219,7 +238,7 @@ public:
         if (!monoid_can_increase(rc))
           continue;
       }
-      unsigned not_free = get_num_non_free_dep_vars(j, min_non_free_so_far);
+      unsigned not_free = get_num_of_basic_columns_that_can_become_infeasible(j, min_non_free_so_far, bj_needs_to_grow, bj);
       unsigned col_sz = this->m_A.m_columns[j].size();
       if (not_free < min_non_free_so_far || (not_free == min_non_free_so_far && col_sz < best_col_sz)) {
         min_non_free_so_far = not_free;
