@@ -154,22 +154,7 @@ public:
     UNREACHABLE(); // unreachable
     return false;
   }
-/**
- * Return the number of base variables depending on the column j,
- * but take the min with the (bound+1).
- * This function is used to select the pivot variable.
-*/
-  unsigned get_num_non_free_dep_vars(
-      unsigned j, unsigned bound) const { // consider looking at the signs here: todo
-    unsigned r = 0;
-    for (const auto &cc : this->m_A.m_columns[j]) {
-      if (this->m_column_types[this->m_basis[cc.var()]] != column_type::free_column) {        
-         if (++r > bound) return r;
-      }
-    }
-    return r;
-  }
-
+  
   int find_beneficial_entering_in_row_tableau_rows_bland_mode(int i, T &a_ent) {
     int j = -1;
     unsigned bj = this->m_basis[i];
@@ -203,7 +188,6 @@ public:
     // least one pivot operation
     int choice = -1;
     int nchoices = 0;
-    unsigned min_non_free_so_far = -1;
     unsigned best_col_sz = -1;
     unsigned bj = this->m_basis[i];
     bool bj_needs_to_grow = needs_to_grow(bj);
@@ -219,15 +203,12 @@ public:
         if (!monoid_can_increase(rc))
           continue;
       }
-      unsigned not_free = get_num_non_free_dep_vars(j, min_non_free_so_far);
       unsigned col_sz = this->m_A.m_columns[j].size();
-      if (not_free < min_non_free_so_far || (not_free == min_non_free_so_far && col_sz < best_col_sz)) {
-        min_non_free_so_far = not_free;
-        best_col_sz = this->m_A.m_columns[j].size();
+      if (col_sz < best_col_sz) {
+        best_col_sz = col_sz;
         choice = k;
         nchoices = 1;
-      } else if (not_free == min_non_free_so_far &&
-                 col_sz == best_col_sz) {
+      } else if ( col_sz == best_col_sz) {
         if (this->m_settings.random_next(++nchoices) == 0){         
           choice = k;          
         }
