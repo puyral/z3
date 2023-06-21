@@ -536,6 +536,7 @@ namespace dd {
     };
 
     std::ostream& operator<<(std::ostream& out, pdd_monomial const& m);
+    pdd& operator+=(pdd& p, pdd_monomial const& m);
 
     class pdd_iterator {
         friend class pdd;

@@ -52,6 +52,8 @@ namespace lp {
         unsigned non_int_before, non_int_after;
 
         non_int_before = count_non_int();
+
+
         unsigned num = lra.A_r().column_count();
         for (unsigned j : lra.r_basis()) 
             if (!lra.get_value(j).is_int())

@@ -274,7 +274,31 @@ void intervals::set_var_interval(lpvar v, interval& b) {
         m_dep_intervals.set_upper_is_inf(b, true);
         if (wd == e_with_deps::with_deps) b.m_upper_dep = nullptr;
     }
+
+    if (ls().column_corresponds_to_term(v)) {
+        auto const& lt = ls().column_to_term(v);
+        scoped_dep_interval ti(m_dep_intervals), r(m_dep_intervals);
+        if (interval_from_lar_term<wd>(lt, ti)) {
+            m_dep_intervals.intersect<wd>(b, ti, r);
+            m_dep_intervals.set<wd>(b, r);
+        }
+    }
 }
+
+template <dep_intervals::with_deps_t wd>
+bool intervals::interval_from_lar_term(lp::lar_term const& t, scoped_dep_interval& i) {
+    m_dep_intervals.set_value(i, rational::zero());
+    scoped_dep_interval vi(m_dep_intervals);
+    for (auto const& arg : t) {
+        set_var_interval<wd>(arg.column().index(), vi);
+        m_dep_intervals.mul<wd>(arg.coeff(), vi, vi);
+        m_dep_intervals.add<wd>(vi, i, i);
+        if (m_dep_intervals.is_inf(i))
+            return false;
+    }
+    return true;
+}
+
 
 template <e_with_deps wd>
 bool intervals::interval_from_term(const nex& e, scoped_dep_interval& i) {
@@ -360,7 +384,7 @@ bool intervals::conflict_u_l(const interval& a, const interval& b) const {
 template <e_with_deps wd, typename T>
 bool intervals::interval_of_sum(const nex_sum& e, scoped_dep_interval& a, const std::function<void (const T&)>& f) {
     TRACE("nla_intervals_details", tout << "e=" << e << "\n";);
-    if(! interval_of_sum_no_term<wd>(e, a, f)) {
+    if (!interval_of_sum_no_term<wd>(e, a, f)) {
         return false;
     }
     TRACE("nla_intervals_details", tout << "a = "; display(tout, a););
@@ -379,12 +403,14 @@ bool intervals::interval_of_sum(const nex_sum& e, scoped_dep_interval& a, const 
                     if (conflict_u_l(a, i_from_term)) {
                         get_dep_intervals().linearize(a.get().m_upper_dep, expl);
                         get_dep_intervals().linearize(r.get().m_lower_dep, expl);                        
-                    } else {
+                    }
+                    else {
                         get_dep_intervals().linearize(r.get().m_upper_dep, expl);
                         get_dep_intervals().linearize(a.get().m_lower_dep, expl);                        
                     }                        
                     f(expl);
-                } else {
+                }
+                else {
                     // need to recalculate the interval with dependencies
                     scoped_dep_interval sa(get_dep_intervals());
                     interval_of_sum<e_with_deps::with_deps>(e, sa, f);

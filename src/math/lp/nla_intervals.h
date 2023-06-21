@@ -55,6 +55,8 @@ public:
     template <dep_intervals::with_deps_t wd>
     bool interval_from_term(const nex& e, scoped_dep_interval& i); 
 
+    template <dep_intervals::with_deps_t wd>
+    bool interval_from_lar_term(lp::lar_term const& t, scoped_dep_interval& i); 
 
     template <dep_intervals::with_deps_t wd, typename T>
     bool interval_of_sum_no_term(const nex_sum& e, scoped_dep_interval&, const std::function<void (const T&)>& f );

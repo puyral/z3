@@ -23,6 +23,7 @@ namespace nla {
         dd::solver               m_solver;
         lp::lar_solver&          m_lar_solver;
         lp::u_set                m_rows;
+        unsigned                 m_quota = 0;
 
         lp::lp_settings& lp_settings();
 
@@ -30,6 +31,9 @@ namespace nla {
         bool is_conflicting();
         bool is_conflicting(const dd::solver::equation& eq);
 
+
+        bool propagate(std::function<bool(dd::solver::equation const&)>& fn);
+        
         bool propagate_bounds();
         bool propagate_bounds(const dd::solver::equation& eq);
 
@@ -38,7 +42,10 @@ namespace nla {
 
         bool propagate_factorization();
         bool propagate_factorization(const dd::solver::equation& eq);
-                
+
+        bool propagate_gcd();
+        bool propagate_gcd(const dd::solver::equation& eq);
+        
         void add_dependencies(new_lemma& lemma, const dd::solver::equation& eq);
 
         // setup

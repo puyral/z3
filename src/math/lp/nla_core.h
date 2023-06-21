@@ -174,7 +174,7 @@ public:
     }
 
     bool need_run_grobner() const { 
-        return m_nla_settings.run_grobner && lp_settings().stats().m_nla_calls % m_nla_settings.grobner_frequency == 0; 
+        return m_nla_settings.run_grobner; // && lp_settings().stats().m_nla_calls % m_nla_settings.grobner_frequency == 0; 
     }
 
     void set_active_vars_weights(nex_creator&);

@@ -1959,5 +1959,14 @@ namespace dd {
         return out;
     }
 
+    pdd& operator+=(pdd & p, pdd_monomial const& m) {
+        pdd q(p.manager());
+        q = m.coeff;
+        for (auto v : m.vars)
+            q *= p.manager().mk_var(v);
+        return p += q;
+    }
+
+
 
 }

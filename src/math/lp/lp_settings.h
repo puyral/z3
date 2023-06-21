@@ -120,6 +120,7 @@ struct statistics {
     unsigned m_cross_nested_forms;
     unsigned m_grobner_calls;
     unsigned m_grobner_conflicts;
+    unsigned m_grobner_propagations;
     unsigned m_offset_eqs;
     unsigned m_fixed_eqs;
     statistics() { reset(); }
@@ -142,6 +143,7 @@ struct statistics {
         st.update("arith-horner-cross-nested-forms", m_cross_nested_forms);
         st.update("arith-grobner-calls", m_grobner_calls);
         st.update("arith-grobner-conflicts", m_grobner_conflicts);
+        st.update("arith-grobner-propagations", m_grobner_propagations);
         st.update("arith-offset-eqs", m_offset_eqs);
         st.update("arith-fixed-eqs", m_fixed_eqs);
 

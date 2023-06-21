@@ -368,7 +368,8 @@ public:
 
     bool is_fixed_at_bound(column_index const& j, vector<std::tuple<explanation, column_index, bool, mpq>>& bounds);
     bool has_fixed_at_bound(vector<std::tuple<explanation, column_index, bool, mpq>>& bounds);
-    
+
+
     bool is_fixed(column_index const& j) const { return column_is_fixed(j); }    
     inline column_index to_column_index(unsigned v) const { return column_index(external_to_column_index(v)); }
     bool external_is_used(unsigned) const;
@@ -388,6 +389,11 @@ public:
             m_term_register.local_to_external(idx) : m_var_register.local_to_external(idx);
     }
     bool column_corresponds_to_term(unsigned) const;
+    const lar_term & column_to_term(unsigned j) const {
+        SASSERT(column_corresponds_to_term(j));
+        return get_term(column2tv(to_column_index(j)));
+    }
+
     inline unsigned row_count() const { return A_r().row_count(); }
     bool var_is_registered(var_index vj) const;
     void clear_inf_set() {

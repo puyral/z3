@@ -195,6 +195,8 @@ public:
     void add(const rational& r, interval& a) const;
     void mul(const interval& a, const interval& b, interval& c) { m_imanager.mul(a, b, c); }
     void add(const interval& a, const interval& b, interval& c) { m_imanager.add(a, b, c); }
+    void sub(const interval& a, const interval& b, interval& c) { m_imanager.sub(a, b, c); }
+    void div(const interval& a, const mpq& b, interval& c) { m_imanager.div(a, b, c); }
 
     template <enum with_deps_t wd>
     void set(interval& a, const interval& b) const {
@@ -268,6 +270,30 @@ public:
         }
         else {
             add(a, b, c);
+        }
+    }
+
+    template <enum with_deps_t wd>
+    void sub(const interval& a, const interval& b, interval& c) {
+        if (wd == with_deps) {
+            interval_deps_combine_rule comb_rule;
+            sub(a, b, c, comb_rule);
+            combine_deps(a, b, comb_rule, c);
+        }
+        else {
+            sub(a, b, c);
+        }
+    }
+    
+    template <enum with_deps_t wd>
+    void div(const interval& a, const mpq& b, interval& c) {
+        if (wd == with_deps) {
+            interval_deps_combine_rule comb_rule;
+            div(a, b, c, comb_rule);
+            combine_deps(a, comb_rule, c);
+        }
+        else {
+            div(a, b, c);
         }
     }
 
@@ -413,6 +439,8 @@ public:
 private:
     void mul(const interval& a, const interval& b, interval& c, interval_deps_combine_rule& deps) { m_imanager.mul(a, b, c, deps); }
     void add(const interval& a, const interval& b, interval& c, interval_deps_combine_rule& deps) { m_imanager.add(a, b, c, deps); }
+    void sub(const interval& a, const interval& b, interval& c, interval_deps_combine_rule& deps) { m_imanager.sub(a, b, c, deps); }
+    void div(const interval& a, const mpq& b, interval& c, interval_deps_combine_rule& deps) { m_imanager.div(a, b, c, deps); }
    
     void combine_deps(interval const& a, interval const& b, interval_deps_combine_rule const& deps, interval& i) const {
         m_config.add_deps(a, b, deps, i);

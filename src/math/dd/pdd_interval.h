@@ -29,6 +29,7 @@ typedef dep_intervals::with_deps_t w_dep;
 class pdd_interval {
     dep_intervals& m_dep_intervals;
     std::function<void (unsigned, bool, scoped_dep_interval&)> m_var2interval;
+    std::function<void (unsigned, bool, vector<scoped_dep_interval>&)> m_var2intervals;
 
     // retrieve intervals after distributing multiplication over addition.
     template <w_dep wd>
@@ -65,6 +66,9 @@ public:
     std::function<void (unsigned, bool, scoped_dep_interval&)>& var2interval() { return m_var2interval; } // setter
     const std::function<void (unsigned, bool, scoped_dep_interval&)>& var2interval() const { return m_var2interval; } // getter
 
+    std::function<void (unsigned, bool, vector<scoped_dep_interval>&)>& var2intervals() { return m_var2intervals; } // setter
+    const std::function<void (unsigned, bool, vector<scoped_dep_interval>&)>& var2intervals() const { return m_var2intervals; } // getter
+
     template <w_dep wd>
     void get_interval(pdd const& p, scoped_dep_interval& ret) {
         if (p.is_val()) {
@@ -90,6 +94,44 @@ public:
         scoped_dep_interval i(m());
         m_dep_intervals.set_interval_for_scalar(i, rational::one());        
         get_interval_distributed<wd>(p, i, ret);
+    }
+
+
+    //
+    // produce an explanation for a range using weaker bounds.
+    //
+    // lo_interval := interval(lo)
+    // hi_bound    := bound - lo_interval
+    // hi_interval := explain(var*hi, hi_bound);
+    // lo_bound    := bound - hi_interval
+    // lo_interval := explain(lo, lo_bound);
+    // return lo_interval + hi_interval
+    // 
+    void explain(pdd const& p, interval const& bound, scoped_dep_interval& ret) {
+        if (p.is_val()) {
+            m_dep_intervals.set_interval_for_scalar(ret, p.val());
+            return;
+        }
+        scoped_dep_interval a(m()), t(m()), hi(m()), lo(m());
+        scoped_dep_interval lo_interval(m()), lo_bound(m());
+        scoped_dep_interval hi_interval(m()), hi_bound(m());
+        if (!p.hi().is_val()) {
+            m_var2interval(p.var(), true, a);
+            get_interval<w_dep::with_deps>(p.hi(), hi);
+            m_dep_intervals.mul<dep_intervals::with_deps>(hi, a, hi_interval);
+            m_dep_intervals.sub(bound, hi_interval, lo_bound);
+            explain(p.lo(), lo_bound, lo_interval);
+            m_dep_intervals.add<dep_intervals::with_deps>(lo_interval, hi_interval, ret);
+        }
+        else {
+            get_interval<w_dep::without_deps>(p.lo(), lo_interval);
+            m_dep_intervals.sub(bound, lo_interval, hi_bound);
+            m_dep_intervals.div(hi_bound, p.hi().val(), hi_bound);
+            vectro<scoped_dep_interval> as;
+            m_var2intervals(p.var(), true, as);
+            // use hi_bound to adjust for variable bound.
+        }
+        
     }
 };
 }

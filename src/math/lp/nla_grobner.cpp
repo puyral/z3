@@ -24,8 +24,8 @@ namespace nla {
         common(c),
         m_pdd_manager(m_core.m_lar_solver.number_of_vars()),
         m_solver(m_core.m_reslim, m_pdd_manager),
-        m_lar_solver(m_core.m_lar_solver)
-
+        m_lar_solver(m_core.m_lar_solver),
+        m_quota(m_core.m_nla_settings.grobner_quota*2)
     {}
 
     lp::lp_settings& grobner::lp_settings() {
@@ -33,19 +33,26 @@ namespace nla {
     }
 
     void grobner::operator()() {
-        unsigned& quota = c().m_nla_settings.grobner_quota;
-        if (quota == 1)
+        if (m_quota <= c().m_nla_settings.grobner_quota) {
+            ++m_quota;
             return;
+        }
 
         lp_settings().stats().m_grobner_calls++;
         find_nl_cluster();        
         configure();
         m_solver.saturate();
 
+        m_quota += 2;
+
         if (is_conflicting())
             return;
 
         try {
+
+            if (propagate_gcd())
+                return;
+
             if (propagate_bounds())
                 return;
 
@@ -59,10 +66,12 @@ namespace nla {
             
         }
 
-        if (quota > 1)
-            quota--;
+        m_quota -= 3;
 
-        IF_VERBOSE(2, verbose_stream() << "grobner miss, quota " << quota << "\n");
+        TRACE("grobner", tout << "saturated\n");
+
+
+        IF_VERBOSE(2, verbose_stream() << "grobner miss, quota " << m_quota << "\n");
         IF_VERBOSE(4, diagnose_pdd_miss(verbose_stream()));
 
 #if 0
@@ -89,28 +98,37 @@ namespace nla {
         return conflicts > 0;
     }
 
-    bool grobner::propagate_bounds() {
+    bool grobner::propagate(std::function<bool(dd::solver::equation const&)>& fn) {
         unsigned changed = 0;
-        for (auto eq : m_solver.equations()) 
-            if (propagate_bounds(*eq) && ++changed >= m_solver.number_of_conflicts_to_report())
-                return true;
+        for (auto eq : m_solver.equations()) {
+            if (fn(*eq))
+                ++changed;
+            if (changed >= m_solver.number_of_conflicts_to_report())
+                break;            
+        }
+        lp_settings().stats().m_grobner_propagations += changed;
         return changed > 0;
+    }
+
+
+    bool grobner::propagate_bounds() {
+        std::function<bool(dd::solver::equation const&)> p = [&](auto const& eq) { return propagate_bounds(eq); };
+        return propagate(p);
     }
 
     bool grobner::propagate_eqs() {
-        unsigned changed = 0;
-        for (auto eq : m_solver.equations())
-            if (propagate_fixed(*eq) && ++changed >= m_solver.number_of_conflicts_to_report())
-                return true;
-        return changed > 0;
+        std::function<bool(dd::solver::equation const&)> p = [&](auto const& eq) { return propagate_fixed(eq); };
+        return propagate(p);
     }
 
     bool grobner::propagate_factorization() {
-        unsigned changed = 0;
-        for (auto eq : m_solver.equations())
-            if (propagate_factorization(*eq) && ++changed >= m_solver.number_of_conflicts_to_report())
-                return true;
-        return changed > 0;
+        std::function<bool(dd::solver::equation const&)> p = [&](auto const& eq) { return propagate_factorization(eq); };
+        return propagate(p);
+    }
+
+    bool grobner::propagate_gcd() {
+        std::function<bool(dd::solver::equation const&)> p = [&](auto const& eq) { return propagate_gcd(eq); };
+        return propagate(p);
     }
 
     /**
@@ -189,6 +207,108 @@ namespace nla {
         return true;
     }
 
+    //
+    // v1: 
+    // p + mx * q = 0
+    // such that -mx < lb(p) <= ub(p) < mx
+    // => propagate p = 0
+    //
+    // other versions TBD
+    // p + mx * q = 0
+    // such that ub(p) - lb(p) <= 2mx - 1
+    // => propagate p = k
+    // 
+    // p + mx * q = 0
+    // such that ub(p) does not divide mx
+    // => propagte p <= floor(ub(p)/mx)
+    //
+    // also the gcd tests from int_gcd_test
+    // 
+    bool grobner::propagate_gcd(const dd::solver::equation& eq) {
+        dd::pdd const& p = eq.poly();
+        rational denom(1), mx(0);
+
+        auto is_fixed = [&](dd::pdd_monomial const& m) {
+            for (auto v : m.vars)
+                if (!c().var_is_fixed(v))
+                    return false;
+            return true;
+        };
+        
+        if (p.is_val())
+            return false;
+        for (auto const& m : p) {
+            for (auto v : m.vars)
+                if (!m_lar_solver.column_is_int(v))
+                    return false;            
+            denom = lcm(denom, denominator(m.coeff));
+            if (is_fixed(m))
+                continue;
+            mx = std::max(mx, abs(m.coeff));
+        }
+        dd::pdd lo(p.manager());
+        lo = 0;
+        for (auto const& m : p) 
+            if (abs(m.coeff) < mx || is_fixed(m)) 
+                lo += m;
+        
+        if (lo.is_zero())
+            return false;
+        
+        auto& di = c().m_intervals.get_dep_intervals();
+        dd::pdd_interval eval(di);
+        eval.var2interval() = [this](lpvar j, bool deps, scoped_dep_interval& a) {
+            if (deps) c().m_intervals.set_var_interval<dd::w_dep::with_deps>(j, a);
+            else c().m_intervals.set_var_interval<dd::w_dep::without_deps>(j, a);
+        };
+        scoped_dep_interval i(di), i_wd(di);
+        eval.get_interval<dd::w_dep::without_deps>(lo, i);    
+
+        if (di.lower_is_inf(i))
+            return false;
+        if (di.upper_is_inf(i))
+            return false;
+        if (di.lower(i) <= -mx)
+            return false;
+        if (di.upper(i) >= mx)
+            return false;
+
+        // TODO - relax bound dependencies to weakest that admit within interval -mx, mx.
+        eval.get_interval<dd::w_dep::with_deps>(lo, i_wd);
+
+        lp::lar_term lo_t;
+        rational k(0);
+        for (auto const& m : lo) {
+            unsigned j;
+            auto coeff = m.coeff * denom;
+            if (m.vars.empty())
+                k -= coeff;
+            else if (m.vars.size() == 1) {
+                lo_t.add_monomial(coeff, m.vars[0]);
+            }
+            else if (c().find_canonical_monic_of_vars(m.vars, j)) {
+                verbose_stream() << "canonical monic\n";
+                lo_t.add_monomial(coeff, j);
+            }
+            else
+                return false;
+        }
+
+        c().m_intervals.display(verbose_stream(), i); verbose_stream() << "\n";
+        c().print_ineq(ineq(lo_t, lp::EQ, k), verbose_stream()) << "\n";
+
+        new_lemma lemma(c(), "pdd-gcd");
+        add_dependencies(lemma, eq);
+        svector<lp::constraint_index> deps;
+        di.get_lower_dep(i_wd, deps);
+        di.get_upper_dep(i_wd, deps);
+        lp::explanation e(deps);
+        lemma &= e;
+        lemma |= ineq(lo_t, lp::EQ, k);        
+
+        verbose_stream() << lemma << "\n";
+        return true;
+    }
 
     void grobner::add_dependencies(new_lemma& lemma, const dd::solver::equation& eq) {
         lp::explanation ex;
@@ -346,7 +466,8 @@ namespace nla {
                 continue;
             m_rows.insert(row);
             unsigned k = m_lar_solver.get_base_column_in_row(row);
-            if (m_lar_solver.column_is_free(k) && k != j)
+            CTRACE("grobner", m_lar_solver.column_is_free(k) && k != j, tout << "skip " << k << "\n");
+            if (false && m_lar_solver.column_is_free(k) && k != j)
                 continue;
             CTRACE("grobner", matrix.m_rows[row].size() > c().m_nla_settings.grobner_row_length_limit,
                    tout << "ignore the row " << row << " with the size " << matrix.m_rows[row].size() << "\n";); 
