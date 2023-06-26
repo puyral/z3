@@ -33,6 +33,9 @@ namespace nla {
     }
 
     void grobner::operator()() {
+        if (m_quota == 0) {
+            m_quota = 2*c().m_nla_settings.grobner_quota;
+        }
         if (m_quota <= c().m_nla_settings.grobner_quota) {
             ++m_quota;
             return;
@@ -66,12 +69,12 @@ namespace nla {
             
         }
 
-        m_quota -= 3;
+        //        m_quota -= 3;
 
         TRACE("grobner", tout << "saturated\n");
 
 
-        IF_VERBOSE(2, verbose_stream() << "grobner miss, quota " << m_quota << "\n");
+        IF_VERBOSE(3, verbose_stream() << "grobner miss, quota " << m_quota << "\n");
         IF_VERBOSE(4, diagnose_pdd_miss(verbose_stream()));
 
 #if 0
@@ -93,7 +96,7 @@ namespace nla {
             lp_settings().stats().m_grobner_conflicts++;
 
         TRACE("grobner", m_solver.display(tout));
-        IF_VERBOSE(2, if (conflicts > 0) verbose_stream() << "grobner conflict\n");
+        IF_VERBOSE(3, if (conflicts > 0) verbose_stream() << "grobner conflict\n");
 
         return conflicts > 0;
     }
@@ -183,8 +186,6 @@ namespace nla {
         auto [vars, q] = p.var_factors();
         if (vars.empty() || !q.is_linear())
             return false;
-
-        // IF_VERBOSE(0, verbose_stream() << "factored " << q << " : " << vars << "\n");
 
         term t;
         while (!q.is_val()) {
@@ -287,15 +288,15 @@ namespace nla {
                 lo_t.add_monomial(coeff, m.vars[0]);
             }
             else if (c().find_canonical_monic_of_vars(m.vars, j)) {
-                verbose_stream() << "canonical monic\n";
+                //verbose_stream() << "canonical monic\n";
                 lo_t.add_monomial(coeff, j);
             }
             else
                 return false;
         }
 
-        c().m_intervals.display(verbose_stream(), i); verbose_stream() << "\n";
-        c().print_ineq(ineq(lo_t, lp::EQ, k), verbose_stream()) << "\n";
+        //c().m_intervals.display(verbose_stream(), i); verbose_stream() << "\n";
+        //c().print_ineq(ineq(lo_t, lp::EQ, k), verbose_stream()) << "\n";
 
         new_lemma lemma(c(), "pdd-gcd");
         add_dependencies(lemma, eq);
@@ -306,7 +307,7 @@ namespace nla {
         lemma &= e;
         lemma |= ineq(lo_t, lp::EQ, k);        
 
-        verbose_stream() << lemma << "\n";
+        //verbose_stream() << lemma << "\n";
         return true;
     }
 
@@ -339,13 +340,13 @@ namespace nla {
             }
         }
         catch (...) {
-            IF_VERBOSE(2, verbose_stream() << "pdd throw\n");
+            IF_VERBOSE(3, verbose_stream() << "pdd throw\n");
             return;
         }
         TRACE("grobner", m_solver.display(tout));
     
 #if 0
-        IF_VERBOSE(2, m_pdd_grobner.display(verbose_stream()));
+        IF_VERBOSE(3, m_pdd_grobner.display(verbose_stream()));
         dd::pdd_eval eval(m_pdd_manager);
         eval.var2val() = [&](unsigned j){ return val(j); };
         for (auto* e : m_pdd_grobner.equations()) {

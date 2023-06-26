@@ -115,6 +115,7 @@ struct statistics {
     unsigned m_hnf_cutter_calls;
     unsigned m_hnf_cuts;
     unsigned m_nla_calls;
+    unsigned m_nla_bounds;
     unsigned m_horner_calls;
     unsigned m_horner_conflicts;
     unsigned m_cross_nested_forms;
@@ -146,7 +147,7 @@ struct statistics {
         st.update("arith-grobner-propagations", m_grobner_propagations);
         st.update("arith-offset-eqs", m_offset_eqs);
         st.update("arith-fixed-eqs", m_fixed_eqs);
-
+        st.update("arith-nla-bounds", m_nla_bounds);
     }
 };
 

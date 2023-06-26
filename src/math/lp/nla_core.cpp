@@ -643,11 +643,11 @@ void core::trace_print_monic_and_factorization(const monic& rm, const factorizat
 
 
 bool core::var_has_positive_lower_bound(lpvar j) const {
-    return m_lar_solver.column_has_lower_bound(j) && m_lar_solver.get_lower_bound(j) > lp::zero_of_type<lp::impq>();
+    return has_lower_bound(j) && m_lar_solver.get_lower_bound(j) > lp::zero_of_type<lp::impq>();
 }
 
 bool core::var_has_negative_upper_bound(lpvar j) const {
-    return m_lar_solver.column_has_upper_bound(j) && m_lar_solver.get_upper_bound(j) < lp::zero_of_type<lp::impq>();
+    return has_upper_bound(j) && m_lar_solver.get_upper_bound(j) < lp::zero_of_type<lp::impq>();
 }
     
 bool core::var_is_separated_from_zero(lpvar j) const {
@@ -811,6 +811,7 @@ void core::print_stats(std::ostream& out) {
 
 void core::clear() {
     m_lemma_vec->clear();
+    m_literal_vec->clear();
 }
     
 void core::init_search() {
@@ -1501,11 +1502,53 @@ void core::check_bounded_divisions(vector<lemma>& l_vec) {
     m_divisions.check_bounded_divisions();
 }
 
-lbool core::check(vector<lemma>& l_vec) {
+bool core::can_add_bound(unsigned j, u_map<unsigned>& bounds) {
+    unsigned count = 1;
+    if (bounds.find(j, count))
+        ++count;
+    bounds.insert(j, count);
+    struct decrement : public trail {
+        u_map<unsigned>& bounds;
+        unsigned j;
+        decrement(u_map<unsigned>& bounds, unsigned j):
+            bounds(bounds),
+            j(j)
+        {}
+        void undo() override {
+            --bounds[j];
+        }
+    };
+    trail().push(decrement(bounds, j));
+    return count < 3;
+}
+
+void core::add_bounds() {
+    unsigned r = random(), sz = m_to_refine.size();
+    for (unsigned k = 0; k < sz; k++) {
+        lpvar i = m_to_refine[(k + r) % sz];
+        auto const& m = m_emons[i];
+        for (lpvar j : m.vars()) {
+            //m_lar_solver.print_column_info(j, verbose_stream() << "check variable " << j << " ") << "\n";
+            if (var_is_free(j)) 
+                m_literal_vec->push_back(ineq(j, lp::lconstraint_kind::EQ, rational::zero()));
+            else if (has_lower_bound(j) && can_add_bound(j, m_lower_bounds_added)) 
+                m_literal_vec->push_back(ineq(j, lp::lconstraint_kind::LE, get_lower_bound(j)));
+            else if (has_upper_bound(j) && can_add_bound(j, m_upper_bounds_added))
+                m_literal_vec->push_back(ineq(j, lp::lconstraint_kind::GE, get_upper_bound(j)));
+            else
+                continue;
+            ++lp_settings().stats().m_nla_bounds;
+            return;
+        }
+    }    
+}
+
+lbool core::check(vector<ineq>& lits, vector<lemma>& l_vec) {
     lp_settings().stats().m_nla_calls++;
     TRACE("nla_solver", tout << "calls = " << lp_settings().stats().m_nla_calls << "\n";);
     m_lar_solver.get_rid_of_inf_eps();
     m_lemma_vec =  &l_vec;
+    m_literal_vec = &lits;
     if (!(m_lar_solver.get_status() == lp::lp_status::OPTIMAL || 
           m_lar_solver.get_status() == lp::lp_status::FEASIBLE)) {
         TRACE("nla_solver", tout << "unknown because of the m_lar_solver.m_status = " << m_lar_solver.get_status() << "\n";);
@@ -1524,15 +1567,30 @@ lbool core::check(vector<lemma>& l_vec) {
     bool run_horner = need_run_horner();
     bool run_bounded_nlsat = should_run_bounded_nlsat();
 
+
+    
     if (l_vec.empty() && !done()) 
         m_monomial_bounds();
+
+
+    auto no_effect = [&]() { return !done() && l_vec.empty() && lits.empty(); };
+
     
-    if (l_vec.empty() && !done() && run_horner) 
-        m_horner.horner_lemmas();
+    {
+        std::function<void(void)> check1 = [&]() { if (no_effect() && run_horner) m_horner.horner_lemmas(); };
+        std::function<void(void)> check2 = [&]() { if (no_effect() && run_grobner) m_grobner(); };
+        std::function<void(void)> check3 = [&]() { if (no_effect()) add_bounds(); };
 
-    if (l_vec.empty() && !done() && run_grobner) 
-        m_grobner();                
-
+        std::pair<unsigned, std::function<void(void)>> checks[] =
+            { {1, check1},
+              {1, check2},
+              {1, check3} };
+        check_weighted(3, checks);
+        if (!l_vec.empty() || !lits.empty())
+            return l_false;
+    }
+            
+    
     if (l_vec.empty() && !done()) 
         m_basics.basic_lemma(true); 
 
@@ -1542,14 +1600,6 @@ lbool core::check(vector<lemma>& l_vec) {
     if (l_vec.empty() && !done())
         m_divisions.check();
     
-#if 0
-    if (l_vec.empty() && !done() && !run_horner) 
-        m_horner.horner_lemmas();
-
-    if (l_vec.empty() && !done() && !run_grobner) 
-        m_grobner();                    
-#endif
-
     if (!conflict_found() && !done() && run_bounded_nlsat)
         ret = bounded_nlsat();
 
@@ -1633,8 +1683,9 @@ bool core::no_lemmas_hold() const {
 }
     
 lbool core::test_check(vector<lemma>& l) {
+    vector<ineq> lits;
     m_lar_solver.set_status(lp::lp_status::OPTIMAL);
-    return check(l);
+    return check(lits, l);
 }
 
 std::ostream& core::print_terms(std::ostream& out) const {

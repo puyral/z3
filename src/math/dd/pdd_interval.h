@@ -126,8 +126,8 @@ public:
         else {
             get_interval<w_dep::without_deps>(p.lo(), lo_interval);
             m_dep_intervals.sub(bound, lo_interval, hi_bound);
-            m_dep_intervals.div(hi_bound, p.hi().val(), hi_bound);
-            vectro<scoped_dep_interval> as;
+            m_dep_intervals.div(hi_bound, p.hi().val().to_mpq(), hi_bound);
+            vector<scoped_dep_interval> as;
             m_var2intervals(p.var(), true, as);
             // use hi_bound to adjust for variable bound.
         }

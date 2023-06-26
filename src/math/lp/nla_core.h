@@ -84,6 +84,7 @@ class core {
     reslimit&                m_reslim;
     std::function<bool(lpvar)> m_relevant;
     vector<lemma> *          m_lemma_vec;
+    vector<ineq> *           m_literal_vec = nullptr;
     lp::u_set                m_to_refine;
     tangents                 m_tangents;
     basics                   m_basics;
@@ -110,6 +111,10 @@ class core {
     monic const*             m_patched_monic = nullptr;      
 
     void check_weighted(unsigned sz, std::pair<unsigned, std::function<void(void)>>* checks);
+
+    u_map<unsigned>          m_lower_bounds_added, m_upper_bounds_added;
+    bool can_add_bound(unsigned j, u_map<unsigned>& bounds);
+    void add_bounds();
 
 public:    
     // constructor
@@ -381,7 +386,7 @@ public:
 
     bool  conflict_found() const;
     
-    lbool check(vector<lemma>& l_vec);
+    lbool check(vector<ineq>& ineqs, vector<lemma>& l_vec);
     lbool check_power(lpvar r, lpvar x, lpvar y, vector<lemma>& l_vec);
     void check_bounded_divisions(vector<lemma>&);
 

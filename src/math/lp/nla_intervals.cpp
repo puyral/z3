@@ -276,7 +276,7 @@ void intervals::set_var_interval(lpvar v, interval& b) {
     }
 
     if (ls().column_corresponds_to_term(v)) {
-        auto const& lt = ls().column_to_term(v);
+        auto const& lt = ls().column_index_to_term(v);
         scoped_dep_interval ti(m_dep_intervals), r(m_dep_intervals);
         if (interval_from_lar_term<wd>(lt, ti)) {
             m_dep_intervals.intersect<wd>(b, ti, r);

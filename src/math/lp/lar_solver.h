@@ -389,9 +389,9 @@ public:
             m_term_register.local_to_external(idx) : m_var_register.local_to_external(idx);
     }
     bool column_corresponds_to_term(unsigned) const;
-    const lar_term & column_to_term(unsigned j) const {
+    const lar_term & column_index_to_term(unsigned j) const {
         SASSERT(column_corresponds_to_term(j));
-        return get_term(column2tv(to_column_index(j)));
+        return get_term(column2tv(j));
     }
 
     inline unsigned row_count() const { return A_r().row_count(); }

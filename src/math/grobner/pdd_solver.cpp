@@ -99,7 +99,7 @@ namespace dd {
             while (!done() && step()) {
                 TRACE("dd.solver", display(tout););
                 DEBUG_CODE(invariant(););
-                IF_VERBOSE(3, display_statistics(verbose_stream()));
+                IF_VERBOSE(3, display_statistics(verbose_stream()));                
             }
             DEBUG_CODE(invariant(););
         }
@@ -322,7 +322,7 @@ namespace dd {
                 SASSERT(curr->idx() != UINT_MAX);
                 pdd const& p = curr->poly();
                 if (curr->state() == to_simplify && p.var() == v) {
-                    if (!eq || is_simpler(*curr, *eq))
+                    if (!eq || is_simpler(*curr, *eq) || (curr->poly().is_linear() && !eq->poly().is_linear()))
                         eq = curr;
                 }
             }
@@ -412,6 +412,11 @@ namespace dd {
     }
     
     bool solver::done() {
+        TRACE("dd.solver",
+              tout << "simplify.size + process.size >= eqs_threshold " << m_to_simplify.size() << " + " << m_processed.size() << " >= " << m_config.m_eqs_threshold << "\n";
+              tout << "simplified >= max_simplified " << m_stats.simplified() << " >= " << m_config.m_max_simplified << "\n";
+              tout << "canceled " << canceled() << "\n";
+              tout << "compute_steps > max_steps " <<  m_stats.m_compute_steps << " > " << m_config.m_max_steps << "\n");
         return 
             m_to_simplify.size() + m_processed.size() >= m_config.m_eqs_threshold ||
             m_stats.simplified() >= m_config.m_max_simplified ||
