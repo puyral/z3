@@ -1570,8 +1570,7 @@ lbool core::check(vector<ineq>& lits, vector<lemma>& l_vec) {
     bool run_grobner = need_run_grobner();
     bool run_horner = need_run_horner();
     bool run_bounded_nlsat = should_run_bounded_nlsat();
-    bool run_bounds = true; //m_nla_settings.branch_nl;
-
+    bool run_bounds = params().arith_nl_branching();    
 
     
     if (l_vec.empty() && !done()) 
