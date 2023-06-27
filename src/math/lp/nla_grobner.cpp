@@ -25,7 +25,7 @@ namespace nla {
         m_pdd_manager(m_core.m_lar_solver.number_of_vars()),
         m_solver(m_core.m_reslim, m_pdd_manager),
         m_lar_solver(m_core.m_lar_solver),
-        m_quota(m_core.m_nla_settings.grobner_quota*2)
+        m_quota(m_core.params().arith_nl_gr_q()*2)
     {}
 
     lp::lp_settings& grobner::lp_settings() {
@@ -34,9 +34,9 @@ namespace nla {
 
     void grobner::operator()() {
         if (m_quota == 0) {
-            m_quota = 2*c().m_nla_settings.grobner_quota;
+            m_quota = 2*c().params().arith_nl_gr_q();
         }
-        if (m_quota <= c().m_nla_settings.grobner_quota) {
+        if (m_quota <= c().params().arith_nl_gr_q()) {
             ++m_quota;
             return;
         }
@@ -360,11 +360,11 @@ namespace nla {
    
         struct dd::solver::config cfg;
         cfg.m_max_steps = m_solver.equations().size();
-        cfg.m_max_simplified = c().m_nla_settings.grobner_max_simplified;
-        cfg.m_eqs_growth = c().m_nla_settings.grobner_eqs_growth;
-        cfg.m_expr_size_growth = c().m_nla_settings.grobner_expr_size_growth;
-        cfg.m_expr_degree_growth = c().m_nla_settings.grobner_expr_degree_growth;
-        cfg.m_number_of_conflicts_to_report = c().m_nla_settings.grobner_number_of_conflicts_to_report;
+        cfg.m_max_simplified = c().params().arith_nl_grobner_max_simplified();
+        cfg.m_eqs_growth = c().params().arith_nl_grobner_eqs_growth();
+        cfg.m_expr_size_growth = c().params().arith_nl_grobner_expr_size_growth();
+        cfg.m_expr_degree_growth = c().params().arith_nl_grobner_expr_degree_growth();
+        cfg.m_number_of_conflicts_to_report = c().params().arith_nl_grobner_cnfl_to_report();
         m_solver.set(cfg);
         m_solver.adjust_cfg();
         m_pdd_manager.set_max_num_nodes(10000); // or something proportional to the number of initial nodes.
@@ -470,9 +470,9 @@ namespace nla {
             CTRACE("grobner", m_lar_solver.column_is_free(k) && k != j, tout << "skip " << k << "\n");
             if (false && m_lar_solver.column_is_free(k) && k != j)
                 continue;
-            CTRACE("grobner", matrix.m_rows[row].size() > c().m_nla_settings.grobner_row_length_limit,
+            CTRACE("grobner", matrix.m_rows[row].size() > c().params().arith_nl_horner_row_length_limit(),
                    tout << "ignore the row " << row << " with the size " << matrix.m_rows[row].size() << "\n";); 
-            if (matrix.m_rows[row].size() > c().m_nla_settings.grobner_row_length_limit)
+            if (matrix.m_rows[row].size() > c().params().arith_nl_horner_row_length_limit())
                 continue;
             for (auto& rc : matrix.m_rows[row]) 
                 add_var_and_its_factors_to_q_and_collect_new_rows(rc.var(), q);
@@ -495,12 +495,12 @@ namespace nla {
         while (!vars.empty()) {
             j = vars.back();
             vars.pop_back();
-            if (c().m_nla_settings.grobner_subs_fixed > 0 && c().var_is_fixed_to_zero(j)) {
+            if (c().params().arith_nl_grobner_subs_fixed() > 0 && c().var_is_fixed_to_zero(j)) {
                 r = m_pdd_manager.mk_val(val_of_fixed_var_with_deps(j, zero_dep));
                 dep = zero_dep;
                 return r;
             }
-            if (c().m_nla_settings.grobner_subs_fixed == 1 && c().var_is_fixed(j))
+            if (c().params().arith_nl_grobner_subs_fixed() == 1 && c().var_is_fixed(j))
                 r *= val_of_fixed_var_with_deps(j, dep);
             else if (!c().is_monic_var(j))
                 r *= m_pdd_manager.mk_var(j);

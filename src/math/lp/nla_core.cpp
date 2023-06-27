@@ -21,7 +21,7 @@ namespace nla {
 
 typedef lp::lar_term term;
 
-core::core(lp::lar_solver& s, reslimit & lim) :
+core::core(lp::lar_solver& s, params_ref const& p, reslimit & lim) :
     m_evars(),
     m_lar_solver(s),
     m_reslim(lim),
@@ -36,6 +36,7 @@ core::core(lp::lar_solver& s, reslimit & lim) :
     m_horner(this),
     m_grobner(this),
     m_emons(m_evars),
+    m_params(p),
     m_use_nra_model(false),
     m_nra(s, m_nra_lim, *this) 
 {
@@ -1504,8 +1505,11 @@ void core::check_bounded_divisions(vector<lemma>& l_vec) {
 
 bool core::can_add_bound(unsigned j, u_map<unsigned>& bounds) {
     unsigned count = 1;
-    if (bounds.find(j, count))
+    if (bounds.find(j, count)) {
+        if (count >= 2)
+            return false;
         ++count;
+    }
     bounds.insert(j, count);
     struct decrement : public trail {
         u_map<unsigned>& bounds;
@@ -1519,7 +1523,7 @@ bool core::can_add_bound(unsigned j, u_map<unsigned>& bounds) {
         }
     };
     trail().push(decrement(bounds, j));
-    return count < 3;
+    return true;    
 }
 
 void core::add_bounds() {
@@ -1566,6 +1570,7 @@ lbool core::check(vector<ineq>& lits, vector<lemma>& l_vec) {
     bool run_grobner = need_run_grobner();
     bool run_horner = need_run_horner();
     bool run_bounded_nlsat = should_run_bounded_nlsat();
+    bool run_bounds = true; //m_nla_settings.branch_nl;
 
 
     
@@ -1579,7 +1584,7 @@ lbool core::check(vector<ineq>& lits, vector<lemma>& l_vec) {
     {
         std::function<void(void)> check1 = [&]() { if (no_effect() && run_horner) m_horner.horner_lemmas(); };
         std::function<void(void)> check2 = [&]() { if (no_effect() && run_grobner) m_grobner(); };
-        std::function<void(void)> check3 = [&]() { if (no_effect()) add_bounds(); };
+        std::function<void(void)> check3 = [&]() { if (no_effect() && run_bounds) add_bounds(); };
 
         std::pair<unsigned, std::function<void(void)>> checks[] =
             { {1, check1},
@@ -1615,11 +1620,11 @@ lbool core::check(vector<ineq>& lits, vector<lemma>& l_vec) {
         check_weighted(3, checks);
 
         unsigned num_calls = lp_settings().stats().m_nla_calls;
-        if (!conflict_found() && m_nla_settings.run_nra && num_calls % 50 == 0 && num_calls > 500) 
+        if (!conflict_found() && params().arith_nl_nra() && num_calls % 50 == 0 && num_calls > 500) 
             ret = bounded_nlsat();
     }
 
-    if (l_vec.empty() && !done() && m_nla_settings.run_nra && ret == l_undef) {
+    if (l_vec.empty() && !done() && params().arith_nl_nra() && ret == l_undef) {
         ret = m_nra.check();
         m_stats.m_nra_calls++;
     }
@@ -1639,7 +1644,7 @@ lbool core::check(vector<ineq>& lits, vector<lemma>& l_vec) {
 }
 
 bool core::should_run_bounded_nlsat() {
-    if (!m_nla_settings.run_nra)
+    if (!params().arith_nl_nra())
         return false;
     if (m_nlsat_delay > m_nlsat_fails)
         ++m_nlsat_fails;
