@@ -25,6 +25,7 @@ core::core(lp::lar_solver& s, params_ref const& p, reslimit & lim) :
     m_evars(),
     m_lar_solver(s),
     m_reslim(lim),
+    m_params(p),
     m_tangents(this),
     m_basics(this),
     m_order(this),
@@ -36,7 +37,6 @@ core::core(lp::lar_solver& s, params_ref const& p, reslimit & lim) :
     m_horner(this),
     m_grobner(this),
     m_emons(m_evars),
-    m_params(p),
     m_use_nra_model(false),
     m_nra(s, m_nra_lim, *this) 
 {
@@ -1535,10 +1535,12 @@ void core::add_bounds() {
             //m_lar_solver.print_column_info(j, verbose_stream() << "check variable " << j << " ") << "\n";
             if (var_is_free(j)) 
                 m_literal_vec->push_back(ineq(j, lp::lconstraint_kind::EQ, rational::zero()));
+#if 0
             else if (has_lower_bound(j) && can_add_bound(j, m_lower_bounds_added)) 
                 m_literal_vec->push_back(ineq(j, lp::lconstraint_kind::LE, get_lower_bound(j)));
             else if (has_upper_bound(j) && can_add_bound(j, m_upper_bounds_added))
                 m_literal_vec->push_back(ineq(j, lp::lconstraint_kind::GE, get_upper_bound(j)));
+#endif
             else
                 continue;
             ++lp_settings().stats().m_nla_bounds;

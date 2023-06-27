@@ -83,6 +83,7 @@ class core {
 
     lp::lar_solver&          m_lar_solver;
     reslimit&                m_reslim;
+    smt_params_helper        m_params;
     std::function<bool(lpvar)> m_relevant;
     vector<lemma> *          m_lemma_vec;
     vector<ineq> *           m_literal_vec = nullptr;
@@ -104,7 +105,6 @@ class core {
     mutable lp::u_set        m_active_var_set;
 
     reslimit                 m_nra_lim;
-    smt_params_helper        m_params;
 
     bool                     m_use_nra_model = false;
     nra::solver              m_nra;
