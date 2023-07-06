@@ -1420,8 +1420,11 @@ namespace arith {
     }
 
     void solver::assume_literals() {
-        for (auto const& ineq : m_nla_literals)
-            s().set_phase(mk_ineq_literal(ineq));        
+        for (auto const& ineq : m_nla_literals) {
+            auto lit = mk_ineq_literal(ineq);
+            ctx.mark_relevant(lit);
+            s().set_phase(lit);
+        }
     }
     
     sat::literal solver::mk_ineq_literal(nla::ineq const& ineq) {

@@ -2575,17 +2575,18 @@ public:
 
     void assume_literal(nla::ineq const& i) {
         auto lit = mk_literal(i);
+        ctx().mark_as_relevant(lit);
         ctx().set_true_first_flag(lit.var());
     }
     
     final_check_status check_nla_continue() {
         m_a1 = nullptr; m_a2 = nullptr;
         lbool r = m_nla->check(m_nla_literals, m_nla_lemma_vector);
-        for (const nla::ineq& i : m_nla_literals)
-            return (assume_literal(i), FC_CONTINUE); 
 
         switch (r) {
         case l_false:
+            for (const nla::ineq& i : m_nla_literals)
+                assume_literal(i); 
             for (const nla::lemma & l : m_nla_lemma_vector) 
                 false_case_of_check_nla(l);
             return FC_CONTINUE;

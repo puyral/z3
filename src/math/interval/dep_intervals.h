@@ -80,6 +80,8 @@ private:
         mpq const& upper(interval const& a) const { return a.m_upper; }
         mpq& lower(interval& a) { return a.m_lower; }
         mpq& upper(interval& a) { return a.m_upper; }
+        u_dependency* upper_dep(interval const & a) { return a.m_upper_dep; }
+        u_dependency* lower_dep(interval const & a) { return a.m_lower_dep; }
         bool lower_is_open(interval const& a) const { return a.m_lower_open; }
         bool upper_is_open(interval const& a) const { return a.m_upper_open; }
         bool lower_is_inf(interval const& a) const { return a.m_lower_inf; }
@@ -196,6 +198,7 @@ public:
     void mul(const interval& a, const interval& b, interval& c) { m_imanager.mul(a, b, c); }
     void add(const interval& a, const interval& b, interval& c) { m_imanager.add(a, b, c); }
     void sub(const interval& a, const interval& b, interval& c) { m_imanager.sub(a, b, c); }
+    void mul(const interval& a, const mpq& b, interval& c) { m_imanager.mul(b, a, c); }
     void div(const interval& a, const mpq& b, interval& c) { m_imanager.div(a, b, c); }
 
     template <enum with_deps_t wd>
@@ -296,6 +299,18 @@ public:
             div(a, b, c);
         }
     }
+    
+    template <enum with_deps_t wd>
+    void mul(const interval& a, const mpq& b, interval& c) {
+        if (wd == with_deps) {
+            interval_deps_combine_rule comb_rule;
+            mul(b, a, c, comb_rule);
+            combine_deps(a, comb_rule, c);
+        }
+        else {
+            mul(b, a, c);
+        }
+    }
 
     template <enum with_deps_t wd>
     void copy_upper_bound(const interval& a, interval& i) const {
@@ -358,6 +373,10 @@ public:
     }
     mpq const& lower(interval const& a) const { return m_config.lower(a); }
     mpq const& upper(interval const& a) const { return m_config.upper(a); }
+
+    u_dependency* upper_dep(interval const & a) { return m_config.upper_dep(a); }
+    u_dependency* lower_dep(interval const & a) { return m_config.lower_dep(a); }
+
 
     bool is_empty(interval const& a) const;
     void set_interval_for_scalar(interval&, const rational&);
@@ -441,6 +460,7 @@ private:
     void add(const interval& a, const interval& b, interval& c, interval_deps_combine_rule& deps) { m_imanager.add(a, b, c, deps); }
     void sub(const interval& a, const interval& b, interval& c, interval_deps_combine_rule& deps) { m_imanager.sub(a, b, c, deps); }
     void div(const interval& a, const mpq& b, interval& c, interval_deps_combine_rule& deps) { m_imanager.div(a, b, c, deps); }
+    void mul(const interval& a, const mpq& b, interval& c, interval_deps_combine_rule& deps) { m_imanager.mul(b, a, c, deps); }
    
     void combine_deps(interval const& a, interval const& b, interval_deps_combine_rule const& deps, interval& i) const {
         m_config.add_deps(a, b, deps, i);

@@ -274,8 +274,14 @@ namespace nla {
         if (di.upper(i) >= mx)
             return false;
 
+        eval.var2intervals() = [this](lpvar j, bool deps, scoped_ptr_vector<scoped_dep_interval>& intervals) {
+            verbose_stream() << "get-intervals\n";
+            // var2intervals(j, deps, intervals);
+        };
         // TODO - relax bound dependencies to weakest that admit within interval -mx, mx.
-        eval.get_interval<dd::w_dep::with_deps>(lo, i_wd);
+        eval.explain(lo, i, i_wd);
+
+        // eval.get_interval<dd::w_dep::with_deps>(lo, i_wd);
 
         lp::lar_term lo_t;
         rational k(0);
@@ -310,6 +316,7 @@ namespace nla {
         //verbose_stream() << lemma << "\n";
         return true;
     }
+
 
     void grobner::add_dependencies(new_lemma& lemma, const dd::solver::equation& eq) {
         lp::explanation ex;

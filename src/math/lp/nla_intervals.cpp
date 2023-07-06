@@ -62,7 +62,8 @@ std::ostream & intervals::print_dependencies(u_dependency* deps , std::ostream& 
         if (!expl.empty()) {
             m_core->print_explanation(e, out);
             expl.clear();
-        } else {
+        }
+        else {
             out << "\nno constraints\n";
         }
     }
@@ -135,7 +136,8 @@ lp::lar_term intervals::expression_to_normalized_term(const nex_sum* e, rational
     for (const nex* c : *e) {
         if (c->is_scalar()) {
             b += c->to_scalar().value();
-        } else {
+        }
+        else {
             add_linear_to_vector(c, v);
             if (v.empty())
                 continue;
@@ -153,7 +155,8 @@ lp::lar_term intervals::expression_to_normalized_term(const nex_sum* e, rational
         for (auto& p : v) {
             t.add_monomial(p.first, p.second);
         }
-    } else {
+    }
+    else {
         for (unsigned k = 0; k < v.size(); k++) {
             auto& p = v[k];
             if (k != a_index) 
@@ -212,26 +215,23 @@ u_dependency *intervals::mk_dep(lp::constraint_index ci) {
 
 u_dependency *intervals::mk_dep(const lp::explanation& expl) {
     u_dependency * r = nullptr;
-    for (auto p : expl) {
-        if (r == nullptr) {
-            r = m_dep_intervals.mk_leaf(p.ci());
-        } else {
-            r = m_dep_intervals.mk_join(r, m_dep_intervals.mk_leaf(p.ci()));
-        }
-    }
+    for (auto p : expl) 
+        r = m_dep_intervals.mk_join(r, m_dep_intervals.mk_leaf(p.ci()));
     return r;
 }
 
 std::ostream& intervals::display(std::ostream& out, const interval& i) const {
     if (m_dep_intervals.lower_is_inf(i)) {
         out << "(-oo";
-    } else {
+    }
+    else {
         out << (m_dep_intervals.lower_is_open(i)? "(":"[") << rational(m_dep_intervals.lower(i));        
     }
     out << ",";
     if (m_dep_intervals.upper_is_inf(i)) {
         out << "oo)";
-    } else {
+    }
+    else {
         out << rational(m_dep_intervals.upper(i)) << (m_dep_intervals.upper_is_open(i)? ")":"]");         
     }
     svector<lp::constraint_index> expl;
@@ -247,7 +247,7 @@ std::ostream& intervals::display(std::ostream& out, const interval& i) const {
 }
 
 template <e_with_deps wd>
-void intervals::set_var_interval(lpvar v, interval& b) {
+void intervals::set_var_interval1(lpvar v, interval& b) {
     TRACE("nla_intervals_details", m_core->print_var(v, tout) << "\n";);
     lp::constraint_index ci;
     rational val;
@@ -274,17 +274,29 @@ void intervals::set_var_interval(lpvar v, interval& b) {
         m_dep_intervals.set_upper_is_inf(b, true);
         if (wd == e_with_deps::with_deps) b.m_upper_dep = nullptr;
     }
+}
 
+template <e_with_deps wd>
+bool intervals::set_var_interval2(lpvar v, scoped_dep_interval& b) {
     if (ls().column_corresponds_to_term(v)) {
         auto const& lt = ls().column_index_to_term(v);
-        scoped_dep_interval ti(m_dep_intervals), r(m_dep_intervals);
-        if (interval_from_lar_term<wd>(lt, ti)) {
-            m_dep_intervals.intersect<wd>(b, ti, r);
-            m_dep_intervals.set<wd>(b, r);
-        }
+        return interval_from_lar_term<wd>(lt, b);
+    }
+    return false;
+}
+    
+template <e_with_deps wd>
+void intervals::set_var_interval(lpvar v, interval& b) {
+    set_var_interval1<wd>(v, b);
+    scoped_dep_interval ti(m_dep_intervals), r(m_dep_intervals);
+    if (set_var_interval2<wd>(v, ti)) {
+        m_dep_intervals.intersect<wd>(b, ti, r);
+        m_dep_intervals.set<wd>(b, r);
     }
 }
 
+
+    
 template <dep_intervals::with_deps_t wd>
 bool intervals::interval_from_lar_term(lp::lar_term const& t, scoped_dep_interval& i) {
     m_dep_intervals.set_value(i, rational::zero());
@@ -363,21 +375,14 @@ bool intervals::interval_of_sum_no_term(const nex_sum& e, scoped_dep_interval & 
 
 // return true iff a.upper < b.lower, or a.upper == b.lower and one of these bounds is open
 bool intervals::conflict_u_l(const interval& a, const interval& b) const {
-     if (a.m_upper_inf) {
+     if (a.m_upper_inf) 
          return false;
-     }
-     if (b.m_lower_inf) {
+     if (b.m_lower_inf) 
          return false;
-     }
-
-     if (m_dep_intervals.num_manager().lt(a.m_upper, b.m_lower)) {
+     if (m_dep_intervals.num_manager().lt(a.m_upper, b.m_lower)) 
          return true;
-     }
-
-     if (m_dep_intervals.num_manager().gt(a.m_upper, b.m_lower)) {
-            return false;
-     }
-
+     if (m_dep_intervals.num_manager().gt(a.m_upper, b.m_lower)) 
+         return false;
      return a.m_upper_open || b.m_upper_open;
 }
 
@@ -468,31 +473,24 @@ template <e_with_deps wd, typename T>
 bool intervals::interval_of_expr(const nex* e, unsigned p, scoped_dep_interval& a, const std::function<void (const T&)>& f) {
     switch (e->type()) {
     case expr_type::SCALAR:
-        {
-            m_dep_intervals.set_interval_for_scalar(a, power(to_scalar(e)->value(), p));
-        }
+        m_dep_intervals.set_interval_for_scalar(a, power(to_scalar(e)->value(), p));        
         break;
-    case expr_type::SUM: {
+    case expr_type::SUM: 
         if (!interval_of_sum<wd>(e->to_sum(), a, f))
             return false;
-        if (p != 1) {
+        if (p != 1) 
             to_power<wd>(a, p);
-        }
         break;
-    }
-    case expr_type::MUL: {
+    case expr_type::MUL: 
         if (!interval_of_mul<wd>(e->to_mul(), a, f))
             return false;
-        if (p != 1) {
+        if (p != 1) 
             to_power<wd>(a, p);
-        }
         break;
-    }
     case expr_type::VAR:
         set_var_interval<wd>(e->to_var().var(), a);
-        if (p != 1) {
+        if (p != 1) 
             to_power<wd>(a, p);
-        }
         break;
     default:
         TRACE("nla_intervals_details", tout << e->type() << "\n";);
@@ -507,5 +505,7 @@ lp::lar_solver& intervals::ls() { return m_core->m_lar_solver; }
 const lp::lar_solver& intervals::ls() const { return m_core->m_lar_solver; }
 
 
+
 } // end of nla namespace
+
 

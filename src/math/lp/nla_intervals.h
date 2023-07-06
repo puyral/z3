@@ -53,6 +53,12 @@ public:
     void set_var_interval(lpvar v, interval& b);
 
     template <dep_intervals::with_deps_t wd>
+    void set_var_interval1(lpvar v, interval& b);
+
+    template <dep_intervals::with_deps_t wd>
+    bool set_var_interval2(lpvar v, scoped_dep_interval& b);
+        
+    template <dep_intervals::with_deps_t wd>
     bool interval_from_term(const nex& e, scoped_dep_interval& i); 
 
     template <dep_intervals::with_deps_t wd>

@@ -21,6 +21,7 @@ Revision History:
 
 #include "math/dd/dd_pdd.h"
 #include "math/interval/dep_intervals.h"
+#include "util/scoped_ptr_vector.h"
 
 namespace dd {
 typedef dep_intervals::interval interval;
@@ -29,7 +30,7 @@ typedef dep_intervals::with_deps_t w_dep;
 class pdd_interval {
     dep_intervals& m_dep_intervals;
     std::function<void (unsigned, bool, scoped_dep_interval&)> m_var2interval;
-    std::function<void (unsigned, bool, vector<scoped_dep_interval>&)> m_var2intervals;
+    std::function<void (unsigned, bool, scoped_ptr_vector<scoped_dep_interval>&)> m_var2intervals;
 
     // retrieve intervals after distributing multiplication over addition.
     template <w_dep wd>
@@ -66,8 +67,8 @@ public:
     std::function<void (unsigned, bool, scoped_dep_interval&)>& var2interval() { return m_var2interval; } // setter
     const std::function<void (unsigned, bool, scoped_dep_interval&)>& var2interval() const { return m_var2interval; } // getter
 
-    std::function<void (unsigned, bool, vector<scoped_dep_interval>&)>& var2intervals() { return m_var2intervals; } // setter
-    const std::function<void (unsigned, bool, vector<scoped_dep_interval>&)>& var2intervals() const { return m_var2intervals; } // getter
+    std::function<void (unsigned, bool, scoped_ptr_vector<scoped_dep_interval>&)>& var2intervals() { return m_var2intervals; } // setter
+    const std::function<void (unsigned, bool, scoped_ptr_vector<scoped_dep_interval>&)>& var2intervals() const { return m_var2intervals; } // getter
 
     template <w_dep wd>
     void get_interval(pdd const& p, scoped_dep_interval& ret) {
@@ -96,7 +97,6 @@ public:
         get_interval_distributed<wd>(p, i, ret);
     }
 
-
     //
     // produce an explanation for a range using weaker bounds.
     //
@@ -121,17 +121,37 @@ public:
             m_dep_intervals.mul<dep_intervals::with_deps>(hi, a, hi_interval);
             m_dep_intervals.sub(bound, hi_interval, lo_bound);
             explain(p.lo(), lo_bound, lo_interval);
-            m_dep_intervals.add<dep_intervals::with_deps>(lo_interval, hi_interval, ret);
         }
-        else {
+        else { 
+            // lo_B + coeff*v : bounds
+            // v in (bounds - l_B) / coeff
+            
             get_interval<w_dep::without_deps>(p.lo(), lo_interval);
             m_dep_intervals.sub(bound, lo_interval, hi_bound);
             m_dep_intervals.div(hi_bound, p.hi().val().to_mpq(), hi_bound);
-            vector<scoped_dep_interval> as;
-            m_var2intervals(p.var(), true, as);
-            // use hi_bound to adjust for variable bound.
+            scoped_ptr_vector<scoped_dep_interval> var_intervals;
+            scoped_dep_interval var_interval(m());
+            m_var2intervals(p.var(), true, var_intervals);
+            for (auto* vip : var_intervals) {
+                auto & vi = *vip;
+                if (!m_dep_intervals.lower_is_inf(vi) && !m_dep_intervals.lower_is_inf(hi_bound) && rational(m_dep_intervals.lower(vi)) > m_dep_intervals.lower(hi_bound)) {
+                    if (m_dep_intervals.lower_is_inf(var_interval) || m_dep_intervals.lower(vi) > m_dep_intervals.lower(var_interval)) {
+                        m_dep_intervals.set_lower(var_interval, m_dep_intervals.lower(vi));
+                        m_dep_intervals.set_lower_dep(var_interval, m_dep_intervals.lower_dep(vi));                        
+                    }
+                }
+                if (!m_dep_intervals.upper_is_inf(vi) && !m_dep_intervals.upper_is_inf(hi_bound) && m_dep_intervals.upper(hi_bound) > m_dep_intervals.upper(vi)) {
+                    if (m_dep_intervals.upper_is_inf(var_interval) || m_dep_intervals.upper(var_interval) > m_dep_intervals.upper(vi)) {
+                        m_dep_intervals.set_upper(var_interval, m_dep_intervals.upper(vi));
+                        m_dep_intervals.set_upper_dep(var_interval, m_dep_intervals.upper_dep(vi));                        
+                    }
+                }
+            }
+            m_dep_intervals.mul(var_interval, p.hi().val().to_mpq(), hi_interval);
+            m_dep_intervals.sub(bound, hi_interval, lo_bound);            
+            explain(p.lo(), lo_bound, lo_interval);
         }
-        
+        m_dep_intervals.add<dep_intervals::with_deps>(lo_interval, hi_interval, ret);
     }
 };
 }

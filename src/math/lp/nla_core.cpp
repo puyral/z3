@@ -1535,7 +1535,7 @@ void core::add_bounds() {
             //m_lar_solver.print_column_info(j, verbose_stream() << "check variable " << j << " ") << "\n";
             if (var_is_free(j)) 
                 m_literal_vec->push_back(ineq(j, lp::lconstraint_kind::EQ, rational::zero()));
-#if 0
+#if 1
             else if (has_lower_bound(j) && can_add_bound(j, m_lower_bounds_added)) 
                 m_literal_vec->push_back(ineq(j, lp::lconstraint_kind::LE, get_lower_bound(j)));
             else if (has_upper_bound(j) && can_add_bound(j, m_upper_bounds_added))
@@ -1574,13 +1574,10 @@ lbool core::check(vector<ineq>& lits, vector<lemma>& l_vec) {
     bool run_bounded_nlsat = should_run_bounded_nlsat();
     bool run_bounds = params().arith_nl_branching();    
 
-    
-    if (l_vec.empty() && !done()) 
-        m_monomial_bounds();
-
-
     auto no_effect = [&]() { return !done() && l_vec.empty() && lits.empty(); };
-
+    
+    if (no_effect())
+        m_monomial_bounds();
     
     {
         std::function<void(void)> check1 = [&]() { if (no_effect() && run_horner) m_horner.horner_lemmas(); };
@@ -1595,15 +1592,14 @@ lbool core::check(vector<ineq>& lits, vector<lemma>& l_vec) {
         if (!l_vec.empty() || !lits.empty())
             return l_false;
     }
-            
-    
-    if (l_vec.empty() && !done()) 
+                
+    if (no_effect()) 
         m_basics.basic_lemma(true); 
 
-    if (l_vec.empty() && !done()) 
+    if (no_effect()) 
         m_basics.basic_lemma(false);
 
-    if (l_vec.empty() && !done())
+    if (no_effect()) 
         m_divisions.check();
     
     if (!conflict_found() && !done() && run_bounded_nlsat)

@@ -48,6 +48,8 @@ namespace nla {
         
         void add_dependencies(new_lemma& lemma, const dd::solver::equation& eq);
 
+        void var2intervals(lpvar j, bool deps, vector<scoped_dep_interval>& intervals);
+
         // setup
         void configure();
         void set_level2var();
