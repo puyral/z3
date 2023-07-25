@@ -56,7 +56,13 @@ public:
     void set_var_interval1(lpvar v, interval& b);
 
     template <dep_intervals::with_deps_t wd>
-    bool set_var_interval2(lpvar v, scoped_dep_interval& b);
+    bool set_var_interval2(lpvar v, scoped_dep_interval& b) {
+        if (ls().column_corresponds_to_term(v)) {
+            auto const& lt = ls().column_index_to_term(v);
+            return interval_from_lar_term<wd>(lt, b);
+        }
+        return false;
+    }
         
     template <dep_intervals::with_deps_t wd>
     bool interval_from_term(const nex& e, scoped_dep_interval& i); 

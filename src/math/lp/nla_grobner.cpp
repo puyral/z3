@@ -289,13 +289,10 @@ namespace nla {
             auto coeff = m.coeff * denom;
             if (m.vars.empty())
                 k -= coeff;
-            else if (m.vars.size() == 1) {
+            else if (m.vars.size() == 1) 
                 lo_t.add_monomial(coeff, m.vars[0]);
-            }
-            else if (c().find_canonical_monic_of_vars(m.vars, j)) {
-                //verbose_stream() << "canonical monic\n";
+            else if (c().find_canonical_monic_of_vars(m.vars, j)) 
                 lo_t.add_monomial(coeff, j);
-            }
             else
                 return false;
         }

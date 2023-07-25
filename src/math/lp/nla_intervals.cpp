@@ -276,14 +276,6 @@ void intervals::set_var_interval1(lpvar v, interval& b) {
     }
 }
 
-template <e_with_deps wd>
-bool intervals::set_var_interval2(lpvar v, scoped_dep_interval& b) {
-    if (ls().column_corresponds_to_term(v)) {
-        auto const& lt = ls().column_index_to_term(v);
-        return interval_from_lar_term<wd>(lt, b);
-    }
-    return false;
-}
     
 template <e_with_deps wd>
 void intervals::set_var_interval(lpvar v, interval& b) {
@@ -503,7 +495,6 @@ bool intervals::interval_of_expr(const nex* e, unsigned p, scoped_dep_interval& 
 lp::lar_solver& intervals::ls() { return m_core->m_lar_solver; }
 
 const lp::lar_solver& intervals::ls() const { return m_core->m_lar_solver; }
-
 
 
 } // end of nla namespace
