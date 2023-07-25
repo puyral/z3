@@ -299,7 +299,8 @@ public:
             div(a, b, c);
         }
     }
-    
+
+#if 0
     template <enum with_deps_t wd>
     void mul(const interval& a, const mpq& b, interval& c) {
         if (wd == with_deps) {
@@ -308,9 +309,10 @@ public:
             combine_deps(a, comb_rule, c);
         }
         else {
-            mul(b, a, c);
+            mul(a, b, c);
         }
     }
+#endif
 
     template <enum with_deps_t wd>
     void copy_upper_bound(const interval& a, interval& i) const {
