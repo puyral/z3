@@ -304,7 +304,7 @@ public:
     void mul(const interval& a, const mpq& b, interval& c) {
         if (wd == with_deps) {
             interval_deps_combine_rule comb_rule;
-            mul(b, a, c, comb_rule);
+            mul(a, b, c, comb_rule);
             combine_deps(a, comb_rule, c);
         }
         else {
