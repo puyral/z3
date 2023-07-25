@@ -129,17 +129,17 @@ public:
             get_interval<w_dep::without_deps>(p.lo(), lo_interval);
             m_dep_intervals.sub(bound, lo_interval, hi_bound);
             m_dep_intervals.div(hi_bound, p.hi().val().to_mpq(), hi_bound);
-            m_dep_intervals.display(verbose_stream() << "hi bound ", hi_bound) << "\n";
+            //m_dep_intervals.display(verbose_stream() << "hi bound ", hi_bound) << "\n";
             scoped_ptr_vector<scoped_dep_interval> var_intervals;
             scoped_dep_interval var_interval(m());
-            m_dep_intervals.display(verbose_stream() << "var interval ", var_interval) << "\n";
+            //m_dep_intervals.display(verbose_stream() << "var interval ", var_interval) << "\n";
             m_var2intervals(p.var(), true, var_intervals);
             for (auto* vip : var_intervals) {
                 auto & vi = *vip;
                 m_dep_intervals.display(verbose_stream() << " interval ", vi) << "\n";
                 if (!m_dep_intervals.lower_is_inf(vi) && !m_dep_intervals.lower_is_inf(hi_bound) && rational(m_dep_intervals.lower(vi)) >= m_dep_intervals.lower(hi_bound)) {
                     if (m_dep_intervals.lower_is_inf(var_interval) || m_dep_intervals.lower(vi) > m_dep_intervals.lower(var_interval)) {
-                        verbose_stream() << "insert-lower\n";
+                        //verbose_stream() << "insert-lower\n";
                         m_dep_intervals.set_lower(var_interval, m_dep_intervals.lower(vi));
                         m_dep_intervals.set_lower_is_inf(var_interval, false);
                         m_dep_intervals.set_lower_dep(var_interval, m_dep_intervals.lower_dep(vi));                        
@@ -147,17 +147,17 @@ public:
                 }
                 if (!m_dep_intervals.upper_is_inf(vi) && !m_dep_intervals.upper_is_inf(hi_bound) && m_dep_intervals.upper(hi_bound) >= m_dep_intervals.upper(vi)) {
                     if (m_dep_intervals.upper_is_inf(var_interval) || m_dep_intervals.upper(var_interval) > m_dep_intervals.upper(vi)) {
-                        verbose_stream() << "insert-upper\n";
+                        //verbose_stream() << "insert-upper\n";
                         m_dep_intervals.set_upper(var_interval, m_dep_intervals.upper(vi));
                         m_dep_intervals.set_upper_is_inf(var_interval, false);
                         m_dep_intervals.set_upper_dep(var_interval, m_dep_intervals.upper_dep(vi));                        
                     }
                 }
             }
-            m_dep_intervals.display(verbose_stream() << "var interval after ", var_interval) << "\n";
+            //m_dep_intervals.display(verbose_stream() << "var interval after ", var_interval) << "\n";
             m_dep_intervals.mul(var_interval, p.hi().val().to_mpq(), hi_interval);
             m_dep_intervals.sub(bound, hi_interval, lo_bound);
-            m_dep_intervals.display(verbose_stream() << "lo bound ", lo_bound) << "\n";
+            //m_dep_intervals.display(verbose_stream() << "lo bound ", lo_bound) << "\n";
             explain(p.lo(), lo_bound, lo_interval);
         }
         m_dep_intervals.add<dep_intervals::with_deps>(lo_interval, hi_interval, ret);
