@@ -46,6 +46,7 @@ namespace nla {
 
         bool propagate_gcd();
         bool propagate_gcd(const dd::solver::equation& eq);
+
         
         void add_dependencies(new_lemma& lemma, const dd::solver::equation& eq);
 

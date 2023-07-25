@@ -275,16 +275,7 @@ namespace nla {
             return false;
 
         eval.var2intervals() = [&](lpvar j, bool deps, scoped_ptr_vector<scoped_dep_interval>& intervals) {
-            verbose_stream() << "get-intervals\n";
-            scoped_ptr<scoped_dep_interval> a = alloc(scoped_dep_interval, di);
-            scoped_ptr<scoped_dep_interval> b = alloc(scoped_dep_interval, di);
-            if (deps) c().m_intervals.set_var_interval1<dd::w_dep::with_deps>(j, *a);
-            else c().m_intervals.set_var_interval1<dd::w_dep::without_deps>(j, *a);
-            intervals.push_back(a.detach());
-            if (deps && c().m_intervals.set_var_interval2<dd::w_dep::with_deps>(j, *b))
-                intervals.push_back(b.detach());
-            if (!deps && c().m_intervals.set_var_interval2<dd::w_dep::without_deps>(j, *b))
-                intervals.push_back(b.detach());
+            var2intervals(j, deps, intervals);
         };
         // TODO - relax bound dependencies to weakest that admit within interval -mx, mx.
         eval.explain(lo, i, i_wd);
@@ -323,6 +314,19 @@ namespace nla {
 
         //verbose_stream() << lemma << "\n";
         return true;
+    }
+
+    void grobner::var2intervals(lpvar j, bool deps, scoped_ptr_vector<scoped_dep_interval>& intervals) {
+        auto& di = c().m_intervals.get_dep_intervals();
+        scoped_ptr<scoped_dep_interval> a = alloc(scoped_dep_interval, di);
+        scoped_ptr<scoped_dep_interval> b = alloc(scoped_dep_interval, di);
+        if (deps) c().m_intervals.set_var_interval1<dd::w_dep::with_deps>(j, *a);
+        else c().m_intervals.set_var_interval1<dd::w_dep::without_deps>(j, *a);
+        intervals.push_back(a.detach());
+        if (deps && c().m_intervals.set_var_interval2<dd::w_dep::with_deps>(j, *b))
+            intervals.push_back(b.detach());
+        if (!deps && c().m_intervals.set_var_interval2<dd::w_dep::without_deps>(j, *b))
+            intervals.push_back(b.detach());
     }
 
 
