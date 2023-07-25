@@ -8,6 +8,7 @@
   --*/
 #pragma once
 
+#include "util/scoped_ptr_vector.h"
 #include "math/lp/nla_common.h"
 #include "math/lp/nla_intervals.h"
 #include "math/lp/nex.h"
@@ -48,7 +49,7 @@ namespace nla {
         
         void add_dependencies(new_lemma& lemma, const dd::solver::equation& eq);
 
-        void var2intervals(lpvar j, bool deps, vector<scoped_dep_interval>& intervals);
+        void var2intervals(lpvar j, bool deps, scoped_ptr_vector<scoped_dep_interval>& intervals);
 
         // setup
         void configure();

@@ -451,6 +451,17 @@ class theory_lra::imp {
         return s;
     }
 
+    theory_var internalize_div(app* n) {
+        TRACE("arith", tout << "internalizing...\n" << mk_pp(n, m) << "\n";);
+        rational r(1);
+        theory_var s = mk_binary_op(n);
+        if (!a.is_numeral(n->get_arg(1), r) || r.is_zero())
+            found_underspecified(n);
+        if (!ctx().relevancy())
+            mk_div_axiom(n->get_arg(0), n->get_arg(1));
+        return s;
+    }
+
     theory_var internalize_idiv(app * n) {
         rational r(1);
         theory_var s      = mk_binary_op(n);
@@ -552,7 +563,7 @@ class theory_lra::imp {
         else if (a.is_idiv(n))
             return internalize_idiv(n);
         else if (a.is_div(n))
-            return internalize_mod(n);
+            return internalize_div(n);
         else if (a.is_uminus(n)) 
             return internalize_uminus(n);
         else if (a.is_sub(n))
