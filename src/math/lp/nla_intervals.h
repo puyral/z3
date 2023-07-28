@@ -53,7 +53,34 @@ public:
     void set_var_interval(lpvar v, interval& b);
 
     template <dep_intervals::with_deps_t wd>
-    void set_var_interval1(lpvar v, interval& b);
+    void set_var_interval1(lpvar v, interval& b) {
+        TRACE("nla_intervals_details", m_core->print_var(v, tout) << "\n";);
+        lp::constraint_index ci;
+        rational val;
+        bool is_strict;
+        if (ls().has_lower_bound(v, ci, val, is_strict)) {
+            m_dep_intervals.set_lower(b, val);
+            m_dep_intervals.set_lower_is_open(b, is_strict);
+            m_dep_intervals.set_lower_is_inf(b, false);
+            if (wd == dep_intervals::with_deps_t::with_deps) b.m_lower_dep = mk_dep(ci);
+        }
+        else {
+            m_dep_intervals.set_lower_is_open(b, true);
+            m_dep_intervals.set_lower_is_inf(b, true);
+            if (wd == dep_intervals::with_deps_t::with_deps) b.m_lower_dep = nullptr;
+        }
+        if (ls().has_upper_bound(v, ci, val, is_strict)) {
+            m_dep_intervals.set_upper(b, val);
+            m_dep_intervals.set_upper_is_open(b, is_strict);
+            m_dep_intervals.set_upper_is_inf(b, false);
+            if (wd == dep_intervals::with_deps_t::with_deps) b.m_upper_dep = mk_dep(ci);
+        }
+        else {
+            m_dep_intervals.set_upper_is_open(b, true);
+            m_dep_intervals.set_upper_is_inf(b, true);
+            if (wd == dep_intervals::with_deps_t::with_deps) b.m_upper_dep = nullptr;
+        }
+    }
 
     template <dep_intervals::with_deps_t wd>
     bool set_var_interval2(lpvar v, scoped_dep_interval& b) {

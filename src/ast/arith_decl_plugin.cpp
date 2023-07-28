@@ -710,29 +710,28 @@ bool arith_recognizers::is_irrational_algebraic_numeral(expr const * n) const {
 
 #define IS_INT_EXPR_DEPTH_LIMIT 100
 bool arith_recognizers::is_int_expr(expr const *e) const {
-    if (is_int(e)) return true;
-    if (is_uninterp(e)) return false;
+    if (is_int(e)) 
+        return true;
+    if (is_uninterp(e)) 
+        return false;
     ptr_buffer<const expr> todo;
     todo.push_back(e);
     rational r;
     unsigned i = 0;
     while (!todo.empty()) {
         ++i;
-        if (i > IS_INT_EXPR_DEPTH_LIMIT) {return false;}
+        if (i > IS_INT_EXPR_DEPTH_LIMIT) 
+            return false;
         e = todo.back();
         todo.pop_back();
-        if (is_to_real(e)) {
-            // pass
-        }
-        else if (is_numeral(e, r) && r.is_int()) {
-            // pass
-        }
-        else if (is_add(e) || is_mul(e)) {
-            todo.append(to_app(e)->get_num_args(), to_app(e)->get_args());
-        }
-        else {
+        if (is_to_real(e))
+            ; // pass        
+        else if (is_numeral(e, r) && r.is_int())
+            ; // pass        
+        else if (is_add(e) || is_mul(e))
+            todo.append(to_app(e)->get_num_args(), to_app(e)->get_args());        
+        else
             return false;
-        }
     }
     return true;
 }
@@ -782,8 +781,8 @@ expr_ref arith_util::mk_mul_simplify(unsigned sz, expr* const* args) {
 
 expr_ref arith_util::mk_add_simplify(expr_ref_vector const& args) {
     return mk_add_simplify(args.size(), args.data());
-
 }
+
 expr_ref arith_util::mk_add_simplify(unsigned sz, expr* const* args) {
     expr_ref result(m_manager);
 
@@ -829,8 +828,6 @@ bool arith_util::is_considered_uninterpreted(func_decl* f, unsigned n, expr* con
     return plugin().is_considered_uninterpreted(f);
 }
 
-
-
 func_decl* arith_util::mk_ipower0() {
     sort* s = mk_int();
     sort* rs[2] = { s, s };
@@ -866,18 +863,14 @@ func_decl* arith_util::mk_mod0() {
 bool arith_util::is_bounded(expr* n) const {
     expr* x = nullptr, * y = nullptr;
     while (true) {
-        if (is_idiv(n, x, y) && is_numeral(y)) {
+        if (is_idiv(n, x, y) && is_numeral(y))
             n = x;
-        }
-        else if (is_mod(n, x, y) && is_numeral(y)) {
+        else if (is_mod(n, x, y) && is_numeral(y))
             return true;
-        }
-        else if (is_numeral(n)) {
+        else if (is_numeral(n))
             return true;
-        }
-        else {
+        else
             return false;
-        }
     }
 }
 
@@ -925,7 +918,8 @@ bool arith_util::is_extended_numeral(expr* term, rational& r) const {
             return true;
         }
         return false;
-    } while (false);
+    } 
+    while (false);
     return false;
 }
 
@@ -948,4 +942,3 @@ bool arith_util::is_underspecified(expr* e) const {
     }
     return false;
 }
-

@@ -246,35 +246,6 @@ std::ostream& intervals::display(std::ostream& out, const interval& i) const {
     return out;
 }
 
-template <e_with_deps wd>
-void intervals::set_var_interval1(lpvar v, interval& b) {
-    TRACE("nla_intervals_details", m_core->print_var(v, tout) << "\n";);
-    lp::constraint_index ci;
-    rational val;
-    bool is_strict;
-    if (ls().has_lower_bound(v, ci, val, is_strict)) {
-        m_dep_intervals.set_lower(b, val);
-        m_dep_intervals.set_lower_is_open(b, is_strict);
-        m_dep_intervals.set_lower_is_inf(b, false);
-        if (wd == e_with_deps::with_deps) b.m_lower_dep = mk_dep(ci);
-    }
-    else {
-        m_dep_intervals.set_lower_is_open(b, true);
-        m_dep_intervals.set_lower_is_inf(b, true);
-        if (wd == e_with_deps::with_deps) b.m_lower_dep = nullptr;
-    }
-    if (ls().has_upper_bound(v, ci, val, is_strict)) {
-        m_dep_intervals.set_upper(b, val);
-        m_dep_intervals.set_upper_is_open(b, is_strict);
-        m_dep_intervals.set_upper_is_inf(b, false);
-        if (wd == e_with_deps::with_deps) b.m_upper_dep = mk_dep(ci);
-    }
-    else {
-        m_dep_intervals.set_upper_is_open(b, true);
-        m_dep_intervals.set_upper_is_inf(b, true);
-        if (wd == e_with_deps::with_deps) b.m_upper_dep = nullptr;
-    }
-}
 
     
 template <e_with_deps wd>
