@@ -13,7 +13,7 @@ jobs:
          - arch : x64
            bindings: '-DZ3_BUILD_PYTHON_BINDINGS=True -DZ3_BUILD_DOTNET_BINDINGS=True -DZ3_BUILD_JAVA_BINDINGS=True'
          - arch : amd64_arm64
-           bindings: '-DZ3_BUILD_PYTHON_BINDINGS=True'
+           bindings: ''
 
     runs-on: windows-latest
     env:
