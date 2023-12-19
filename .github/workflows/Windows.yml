@@ -14,7 +14,7 @@ jobs:
            cmd1 : 'julia -e "using Pkg; Pkg.add(PackageSpec(name=\"libcxxwrap_julia_jll\", version=\"0.7.0\"))"'
            cmd2 : 'julia -e "using libcxxwrap_julia_jll; print(dirname(libcxxwrap_julia_jll.libcxxwrap_julia_path))" > tmp.env'
            cmd3 : 'set /P JlCxxDir=<tmp.env'
-           bindings: '-DJlCxx_DIR=%JlCxxDir%\..\lib\cmake\JlCxx $(cmakeJava) $(cmakeNet) $(cmakePy) -DCMAKE_BUILD_TYPE=RelWithDebInfo'
+           bindings: '-DJlCxx_DIR=%JlCxxDir%\..\lib\cmake\JlCxx -DZ3_BUILD_PYTHON_BINDINGS=True -DZ3_BUILD_DOTNET_BINDINGS=True -DZ3_BUILD_JAVA_BINDINGS=True -DCMAKE_BUILD_TYPE=RelWithDebInfo'
          - arch : amd64_arm64
            bindings: '-DZ3_BUILD_PYTHON_BINDINGS=True'
 
