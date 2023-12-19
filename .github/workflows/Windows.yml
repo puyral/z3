@@ -26,4 +26,17 @@ jobs:
           cmd /c "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.arch }}            
           cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ${{ matrix.bindings }}
           cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+     - name: Test
+        run: |
+         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" $(arch)
+         pushd python
+         python z3test.py z3
+         python z3test.py z3num
+         popd
+         cmake --build build --config ${{ env.BUILD_TYPE }}  cpp_example
+         examples\cpp_example_build_dir\cpp_example.exe
+         cmake --build build --config ${{ env.BUILD_TYPE }}  c_example
+         examples\c_example_build_dir\c_example.exe
+         cmake --build build --config ${{ env.BUILD_TYPE }}  test-z3
+         test-z3.exe -a
 
