@@ -26,7 +26,7 @@ jobs:
           cmd /c "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.arch }}            
           cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ${{ matrix.bindings }}
           cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
-     - name: Test
+      - name: Test
         run: |
          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" $(arch)
          pushd python
