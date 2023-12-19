@@ -24,9 +24,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: cmd1
+        if: ${{ matrix.cmd1 }}
+        run: ${{ matrix.cmd1 }}
+      - name: cmd2
+        if: ${{ matrix.cmd2 }}
+        run: ${{ matrix.cmd2 }}
+      - name: cmd3
+        if: ${{ matrix.cmd3 }}
+        run: ${{ matrix.cmd3 }}          
       - name: Build
         run: |          
           cmd /c "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.arch }}            
-          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DZ3_BUILD_LIBZ3_SHARED=OFF -DZ3_BUILD_LIBZ3_MSVC_STATIC=ON
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ${{ matrix.bindings }}
           cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
 
