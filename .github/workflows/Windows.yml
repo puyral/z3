@@ -19,16 +19,16 @@ jobs:
            bindings: '-DZ3_BUILD_PYTHON_BINDINGS=True'
 
     runs-on: windows-latest
+    env:
+      BUILD_TYPE: Release
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.1
       - name: Build
         run: |          
           md build
           cd build
           cmd /c "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.arch }}            
-          cmake -G "NMake Makefiles" ../
-          nmake        
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DZ3_BUILD_LIBZ3_SHARED=OFF -DZ3_BUILD_LIBZ3_MSVC_STATIC=ON
+          cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
 
